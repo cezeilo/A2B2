@@ -2,6 +2,7 @@ from torch.utils.data import Dataset, DataLoader
 import string
 import pronouncing
 import nltk
+import unicodedata
 # nltk.download('cmudict')
 
 def load_data(file_path):
@@ -27,7 +28,16 @@ class Poem(Dataset):
 
 	def read_file(self, file_path):
 		data = open(file_path, encoding = 'utf-8').read().strip().split('\n')
-		return data
+		# return data
+		return [self.unicodeToASCII(line) for line in data if line != '']
+
+	def unicodeToASCII(self, str):
+		all_characters = "$^" + string.ascii_lowercase + " .,;'-" + string.digits + '\n'
+		return ''.join(
+			c for c in unicodedata.normalize('NFD', str)
+			if unicodedata.category(c) != 'Mn'
+			and c in all_characters
+		)
 
 	def pronouncing_get_scheme_helper(self, word1, word2):
 		if word1 in pronouncing.rhymes(word2):
@@ -77,9 +87,11 @@ class Poem(Dataset):
 		return poem
 
 	def generate_data(self):
+		idx = 0
 		for sonnet in self.sonnets:
-			print(len(self.poems))
-			lines = sonnet.strip().split('<eos>')
+			if idx == 10:
+				break
+			lines = sonnet.strip().split('eos')
 			lines = [line.strip() for line in lines][:-1]
 
 			first = lines[0 : 4]
@@ -96,13 +108,14 @@ class Poem(Dataset):
 			third_scheme = self.get_scheme(third)
 			if not third_scheme == 'ABCD':
 				self.poems.append([self.make_poem(third), third_scheme])
+			idx += 1
 
 if __name__ == '__main__':
 	data = Poem('data/sonnet_train.txt', 'data/sonnet_valid.txt','data/sonnet_test.txt')
 	poems = data.poems
 
-	with open('process_data_train.txt', 'w') as f:
+	with open('process_data.txt', 'w') as f:
 		for poem in poems:
-			print(poem)
 			f.writelines(poem)
 			f.write('\n')
+		print('Done\n')
