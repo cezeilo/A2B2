@@ -83,7 +83,8 @@ class Data(Dataset):
         return self.data[idx]
 
 # if __name__ == '__main__':
-#     data = Data('process_data_train_test.txt')
+#     data = Data('process_data.txt')
 #     print(len(data))
 #     for dt in data:
 #     	print(dt)
+#     	assert False
