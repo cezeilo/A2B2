@@ -2,12 +2,34 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import string
+import logging
 
 from model import RhymingModel
 from load_data import Data
 
 all_characters = "$^" + string.ascii_letters + " .,;'-" + string.digits + '\n'
 num_letters = len(all_characters) + 1
+
+class Model:
+	def __init__(self, input_size, output_size, device, lr = 0.0005):
+		self.device = device
+		self.model = RhymingModel(input_size, output_size, device)
+		self.model = self.model.to(device)
+		self.loss_func = nn.CrossEntropyLoss()
+		self.optim = torch.optim.Adam(self.model.parameters(), lr = lr)
+
+	def save_model(self, filepath):
+		logging.info('Saving model to file {}'.format(filepath))
+		torch.save(self.model.cpu().state_dict(), filepath)
+		self.model = self.model.to(device)
+		logging.info('Saved')
+
+	def load(self, filepath):
+		logging.info('Loading model from file {}'.format(filepath))
+		self.model.load_state_dict(torch.load(filepath, map_location = 'cpu'))
+		self.model = self.model.to(self.device)
+		logging.info('Loaded')
+
 
 def input_to_tensor(input):
 	result = torch.zeros(1, len(input), dtype = torch.long)
@@ -39,11 +61,33 @@ def batch_output(poem, max_len):
 		tensor[idx] = torch.LongTensor(indices)
 	return tensor
 
+# def train_helper(sequence_tensor, sequence_mask, sequence_len,
+# 				word_tensor, word_mask, word_len,
+# 				output_word_tensor, output_word_mask, output_len,
+# 				output_tensor, model, loss_func, optim, device):
+# 	model.zero_grad()
+
+# 	sequence_tensor = sequence_tensor.to(device)
+# 	sequence_mask = sequence_mask.to(device)
+# 	word_tensor = word_tensor.to(device)
+# 	word_mask = word_mask.to(device)
+# 	output_word_tensor = output_word_tensor.to(device)
+# 	output_word_mask = output_word_mask.to(device)
+# 	output_tensor = output_tensor.to(device)
+
+# 	output, hidden = model(sequence_tensor, word_tensor, output_word_tensor)
+
+# 	loss = torch.sum(torch.mul(loss_func(output.transpose(1, 2), output_tensor), output_word_mask)) / sum(output_len)
+# 	loss.backward()
+# 	optim.step()
+
+# 	return loss
+
 def train_helper(sequence_tensor, sequence_mask, sequence_len,
 				word_tensor, word_mask, word_len,
 				output_word_tensor, output_word_mask, output_len,
-				output_tensor, model, loss_func, optim, device):
-	model.zero_grad()
+				output_tensor, model):
+	model.model.zero_grad()
 
 	sequence_tensor = sequence_tensor.to(device)
 	sequence_mask = sequence_mask.to(device)
@@ -53,19 +97,17 @@ def train_helper(sequence_tensor, sequence_mask, sequence_len,
 	output_word_mask = output_word_mask.to(device)
 	output_tensor = output_tensor.to(device)
 
-	output, hidden = model(sequence_tensor, word_tensor, output_word_tensor)
+	output, hidden = model.model(sequence_tensor, word_tensor, output_word_tensor)
 
-	loss = torch.sum(torch.mul(loss_func(output.transpose(1, 2), output_tensor), output_word_mask)) / sum(output_len)
+	loss = torch.sum(torch.mul(model.loss_func(output.transpose(1, 2), output_tensor), output_word_mask)) / sum(output_len)
 	loss.backward()
-	optim.step()
+	model.optim.step()
 
 	return loss
 
+
 def train(input_size, output_size, device, lr = 0.0005):
-	model = RhymingModel(input_size, output_size, device)
-	model.to(device)
-	loss_func = nn.CrossEntropyLoss()
-	optim = torch.optim.Adam(model.parameters(), lr = lr)
+	model = Model(input_size, output_size, device, lr)
 	data = Data('process_data.txt')
 
 	epochs = 10
@@ -88,11 +130,47 @@ def train(input_size, output_size, device, lr = 0.0005):
 			output_word_tensor, output_word_mask = batch_input([output], [output_len])
 			output_tensor = batch_output([output], [output_len])
 
-			loss = train_helper(sequence_tensor, sequence_mask, [sequence_len], word_tensor, word_mask, [word_len], output_word_tensor, output_word_mask, [output_len], output_tensor, model, loss_func, optim, device)
+			loss = train_helper(sequence_tensor, sequence_mask, [sequence_len], word_tensor, word_mask, [word_len], output_word_tensor, output_word_mask, [output_len], output_tensor, model)
 			total_loss += loss
-		loss_list.append((total_loss / len(data)))
+		loss_list.append(total_loss / len(data))
+		model.save_model('save_model/Model_Epoch_' + str(epoch + 1) + '_loss_' + str(total_loss / len(data)))
 	plt.plot(loss_list)
-	plt.show()
+	plot.show()
+
+# def train(input_size, output_size, device, lr = 0.0005):
+# 	model = RhymingModel(input_size, output_size, device)
+# 	model.to(device)
+# 	loss_func = nn.CrossEntropyLoss()
+# 	optim = torch.optim.Adam(model.parameters(), lr = lr)
+# 	data = Data('process_data.txt')
+
+# 	epochs = 10
+
+# 	loss_list = list()
+
+# 	print(len(data))
+
+# 	for epoch in range(epochs):
+# 		print('Epoch: ', epoch + 1)
+
+# 		total_loss = 0.0
+
+# 		for dt, scheme in data:
+# 			sequence, word, output = dt
+# 			sequence_len = len(sequence)
+# 			word_len = len(word)
+# 			output_len = len(output)
+
+# 			sequence_tensor, sequence_mask = batch_input([sequence], [sequence_len])
+# 			word_tensor, word_mask = batch_input([word], [word_len])
+# 			output_word_tensor, output_word_mask = batch_input([output], [output_len])
+# 			output_tensor = batch_output([output], [output_len])
+
+# 			loss = train_helper(sequence_tensor, sequence_mask, [sequence_len], word_tensor, word_mask, [word_len], output_word_tensor, output_word_mask, [output_len], output_tensor, model, loss_func, optim, device)
+# 			total_loss += loss
+# 		loss_list.append((total_loss / len(data)))
+# 	plt.plot(loss_list)
+# 	plt.show()
 
 
 if __name__ == '__main__':
