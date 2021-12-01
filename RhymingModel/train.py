@@ -18,6 +18,54 @@ class Model:
 		self.loss_func = nn.CrossEntropyLoss()
 		self.optim = torch.optim.Adam(self.model.parameters(), lr = lr)
 
+	def decode_beam(self, poem, word, beam_length = 4, max_len = 10, alpha = 0.7):
+		with torch.no_grad():
+			input_poem = input_to_tensor(poem).to(self.device)
+			input_word = input_to_tensor(word).to(self.device)
+			output = input_to_tensor(' ').to(self.device)
+
+			output, hidden = self.model(input_poem, input_word, output)
+			output = torch.softmax(output, dim = -1)
+			results = []
+			topv, topi = output.topk(beam_length)
+
+			for i in range(beam_length):
+				if topi[0][0][i] == num_letters - 1:
+					i -= 1
+					continue
+				results.append((all_characters[topi[0][0][i]], hidden, torch.log(topv[0][0][i])))
+
+			rhyming_word = list()
+
+			prune_len = beam_length * 5
+
+			while len(results) > 0:
+				new_results = list()
+				for result in results:
+					output = input_to_tensor(result[0][-1]).to(self.device)
+					output = output.to(self.device)
+					output, hidden = self.model.decoder(self.model.embedding(output), result[1])
+					output = torch.softmax(output, dim = -1)
+					topv, topi = output.topk(beam_length)
+					for i in range(beam_length):
+						if topi[0][0][i] == num_letters - 1:
+							rhyming_word.append((result[0], result[2]))
+						else:
+							character = all_characters[topi[0][0][i]]
+							if len(result[0]) == max_len - 1:
+								rhyming_word.append((result[0] + character, result[2]))
+							else:
+								new_results.append((result[0] + character, hidden, result[2] + torch.log(topv[0][0][i])))
+				results = sorted(new_results, key = lambda tup: (tup[2] / len(tup[0]) ** alpha), reverse = True)
+				results = results[: prune_len]
+
+			results = sorted(rhyming_word, key = lambda tup: (tup[1] / len(tup[0]) ** alpha), reverse = True)[ : min(prune_len, len(rhyming_word))]
+
+			results = [result[0] for result in results]
+
+			return results
+
+
 	def save_model(self, filepath):
 		logging.info('Saving model to file {}'.format(filepath))
 		torch.save(self.model.cpu().state_dict(), filepath)
@@ -110,7 +158,7 @@ def train(input_size, output_size, device, lr = 0.0005):
 	model = Model(input_size, output_size, device, lr)
 	data = Data('process_data.txt')
 
-	epochs = 10
+	epochs = 0
 
 	loss_list = list()
 
@@ -134,8 +182,11 @@ def train(input_size, output_size, device, lr = 0.0005):
 			total_loss += loss
 		loss_list.append(total_loss / len(data))
 		model.save_model('save_model/Model_Epoch_' + str(epoch + 1) + '_loss_' + str(total_loss / len(data)))
-	plt.plot(loss_list)
-	plot.show()
+	# plt.plot(loss_list)
+	# plt.show()
+
+	beam = model.decode_beam("and in this bosom died as it were pained\nan  angels now to the last infer ", "gone")
+	print(beam)
 
 # def train(input_size, output_size, device, lr = 0.0005):
 # 	model = RhymingModel(input_size, output_size, device)
