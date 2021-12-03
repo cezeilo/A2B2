@@ -263,7 +263,7 @@ def main():
     num_head = 12
     activation_function = 'gelu'
 
-    df = pd.read_csv('data/clean_topic_poems_revised_2.csv')
+    df = pd.read_csv('data/clean_poems.csv')
 
     # Simple cleaning
     df.drop_duplicates('Poem', inplace=True)  # Drop any duplicate poems
