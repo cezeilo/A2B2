@@ -158,7 +158,7 @@ def train(input_size, output_size, device, lr = 0.0005):
 	model = Model(input_size, output_size, device, lr)
 	data = Data('process_data.txt')
 
-	epochs = 0
+	epochs = 10
 
 	loss_list = list()
 

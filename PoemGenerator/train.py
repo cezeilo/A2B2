@@ -48,7 +48,7 @@ def plot_poem_length_distributions(df):
 
 
 #Model configuration here
-def configure_model(tokenizer,num_embed=768, num_layers=12, num_head=12, activation_fn='gelu'):
+def configure_model(tokenizer,num_embed=768, num_layers=6, num_head=4, activation_fn='gelu'):
     #n_embd (int, optional, defaults to 768) — Dimensionality of the embeddings and hidden states.
     #n_layer (int, optional, defaults to 12) — Number of hidden layers in the Transformer encoder.
     #n_head (int, optional, defaults to 12) — Number of attention heads for each attention layer in the Transformer encoder.
@@ -162,7 +162,7 @@ def train_model(model, train_dataloader, validation_dataloader, epochs, optimize
             total_eval_loss += batch_loss
 
         avg_val_loss = total_eval_loss / len(validation_dataloader)
-        avg_val_ppl = total_eval_loss / len(validation_dataloader)
+        avg_val_ppl = total_eval_perp / len(validation_dataloader)
         print("  Validation Loss: {0:.2f}".format(avg_val_loss))
 
 
@@ -214,6 +214,12 @@ def plot_loss_perplexity(df_stats, l_or_p, epochs):
     plt.plot(df_stats[col_1], 'b-o', label="Training")
     plt.plot(df_stats[col_2], 'g-o', label="Validation")
 
+    print('\n==================')
+    print(a)
+    print(df_stats[col_1])
+    print(df_stats[col_2])
+    print('==================')
+
     plt.title("Training & Validation " + a )
     plt.xlabel("Epoch")
     plt.ylabel(a)
@@ -249,7 +255,7 @@ def generate(model, tokenizer, device, prompt="<|startoftext|>"):
 
 def main():
     batch_size = 2
-    epochs = 10
+    epochs = 3
     learning_rate = 1e-3
     log_period = 100
     save_dir = './model_save/'
@@ -259,8 +265,8 @@ def main():
         os.makedirs(save_dir)
 
     num_embedded = 768
-    num_layers = 12
-    num_head = 12
+    num_layers = 6
+    num_head = 4 # [4,6,8]
     activation_function = 'gelu'
 
     df = pd.read_csv('data/clean_poems.csv')
@@ -276,7 +282,7 @@ def main():
     #df.to_csv('data/clean_poems.csv', index=False)
 
     # Create a smaller DF to work with for testing puposes
-    data_percentage = .1
+    data_percentage = 1.0
     df = df.sample(frac=data_percentage, replace=False)
 
     print('Shrank examples to ', len(df['Poem']), ' examples')
