@@ -13,7 +13,7 @@ import numpy as np
 import random
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split, RandomSampler, SequentialSampler
-from data_2 import PoemDataset
+from PoemGenerator.data_2 import PoemDataset
 #torch.manual_seed(42)
 #random.seed(42)
 #np.random.seed(42)
@@ -229,15 +229,16 @@ def plot_loss_perplexity(df_stats, l_or_p, epochs):
     plt.show()
 
 #Generate a sequence of tokens
-def generate(model, tokenizer, device, prompt="<|startoftext|>"):
+def generate(model, tokenizer, device, prompt="<|startoftext|>", isval = True):
     #In terms of generating; may have to play around with top_k and top_p to see if either
     #Combining them, or only using one over the other gives more coherent poems
+    # if isval:
     model.eval()
 
     generated = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0)
     generated = generated.to(device)
 
-    print(generated)
+    # print(generated)
 
     sample_outputs = model.generate(
                                     generated,
@@ -251,7 +252,27 @@ def generate(model, tokenizer, device, prompt="<|startoftext|>"):
                                     )
 
     for i, sample_output in enumerate(sample_outputs):
-      print("{}: {}\n\n".format(i, tokenizer.decode(sample_output, skip_special_tokens=True)))
+        output = tokenizer.decode(sample_output, skip_special_tokens=True)
+        if isval:
+            print("{}: {}\n\n".format(i, output))
+    return output
+    # else:
+    #     generated = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0)
+    #     generated = generated.to(device)
+
+    #     sample_outputs = model.generate(
+    #                                     generated,
+    #                                     #bos_token_id=random.randint(1,30000),
+    #                                     do_sample=True,
+    #                                     top_k=50, #the K most likely next words are filtered and the probability mass is redistributed among only those K next words.
+    #                                     max_length = 60,  #15 max words * 4 number of lines
+    #                                     min_length = 12, #3 words minimum * 4 number of lines
+    #                                     top_p=0.95 #Top-p sampling picks the minimum number of words to exceed together p=[]%
+    #                                     #num_return_sequences=4  #Uncomment this for multiple, independently sampled outputs
+    #                                     )
+    #     return tokenizer.decode(sample_outputs[0], skip_special_tokens = True)
+
+
 
 def main():
     batch_size = 2

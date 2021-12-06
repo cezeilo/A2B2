@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import string
 import logging
 
-from model import RhymingModel
-from load_data import Data
+from RhymingModel.model import RhymingModel
+from RhymingModel.load_data import Data
 
 all_characters = "$^" + string.ascii_letters + " .,;'-" + string.digits + '\n'
 num_letters = len(all_characters) + 1
