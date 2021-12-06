@@ -1,5 +1,6 @@
 import os
 import string
+import unicodedata
 
 from transformers import GPT2LMHeadModel,  GPT2Tokenizer, GPT2Config, GPT2LMHeadModel
 from PoemGenerator.train import *
@@ -41,7 +42,9 @@ def sample(first_line, rhymingGenerator, poemGenerator, tokenizer, device):
     second_line = ' '.join(second_line)
 
     # get word that rhyme with the last word of the first line
-    first_rhyme_word = rhymingGenerator.decode_beam(first_line + '\n' + second_line, first_line.split(' ')[-1])
+    word = first_line.split(' ')[-1]
+    poem = unicodeToASCII(first_line + '\n' + second_line)
+    first_rhyme_word = rhymingGenerator.decode_beam(poem, word)
 
     second_line += ' ' + first_rhyme_word[0]
 
@@ -73,9 +76,18 @@ def sample(first_line, rhymingGenerator, poemGenerator, tokenizer, device):
     last_line = ' '.join(last_line)
     
     # get word that rhyme with the last word of the third line
-    second_rhyme_word = rhymingGenerator.decode_beam(first_line + '\n' + second_line + '\n' + third_line + '\n' + last_line, third_line.split(' ')[-1])
+    word = third_line.split(' ')[-1]
+    poem = unicodeToASCII(first_line + '\n' + second_line + '\n' + third_line + '\n' + last_line)
+    second_rhyme_word = rhymingGenerator.decode_beam(poem, word)
     result = first_line + '\n' + second_line + '\n' + third_line + '\n' + last_line + ' ' + second_rhyme_word[0]
     return result
+
+def unicodeToASCII(str):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', str)
+        if unicodedata.category(c) != 'Mn'
+        and c in all_characters
+    )
 
 
 if __name__ == '__main__':
@@ -85,6 +97,7 @@ if __name__ == '__main__':
 
     poemGenerator, tokenizer = load_poemGenerator('/content/A2B2/PoemGenerator/model_save/T_Loss_0.198_V_Loss_0.208', device)
 
+    # print(unicodedata('I love my cat'))
     for i in range(20):
         print('======================\n')
         print(sample('The tree that never had to fight', rhymingGenerator, poemGenerator, tokenizer, device))
