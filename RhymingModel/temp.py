@@ -173,7 +173,7 @@ def train(input_size, output_size, device, lr = 0.0005):
 	validation_loss = list()
 	accuracy_list = list()
 
-	split_point = int(len(data) * 0.9)
+	split_point = int(len(data) * 0.95)
 
 	for epoch in range(epochs):
 		print('Epoch: ', epoch + 1)
@@ -183,8 +183,8 @@ def train(input_size, output_size, device, lr = 0.0005):
 		print('Training...')
 
 		for i in range(split_point):
-			if i % 1000 == 0:
-				print(i / 1000)
+			# if i % 1000 == 0:
+			# 	print(i / 1000)
 			dt, _ = data[i]
 			sequence, word, output = dt
 			sequence_len = len(sequence)
@@ -196,9 +196,10 @@ def train(input_size, output_size, device, lr = 0.0005):
 			output_word_tensor, output_word_mask = batch_input([output], [output_len])
 			output_tensor = batch_output([output], [output_len])
 
-			loss = train_helper(sequence_tensor, sequence_mask, [sequence_len], word_tensor, word_mask, [word_len], output_word_tensor, output_word_mask, [output_len], output_tensor, model)
-			total_loss += loss
+			loss = train_helper(sequence_tensor, sequence_mask, [sequence_len], word_tensor, word_mask, [word_len], output_word_tensor, output_word_mask, [output_len], output_tensor, model, True)
+			total_loss += loss.item()
 		training_loss.append(total_loss / split_point)
+		print('Training Loss: ', training_loss[len(training_loss) - 1])
 		# model.save_model('save_model/Model_Epoch_' + str(epoch + 1) + '_loss_' + str(total_loss / len(data)))
 
 		correct = 0
@@ -216,15 +217,23 @@ def train(input_size, output_size, device, lr = 0.0005):
 			output_word_tensor, output_word_mask = batch_input([output], [output_len])
 			output_tensor = batch_output([output], [output_len])
 
-			loss = train_helper(sequence_tensor, sequence_mask, [sequence_len], word_tensor, word_mask, [word_len], output_word_tensor, output_word_mask, [output_len], output_tensor, model)
-			total_loss += loss
-			result = model.decode_beam(sequence, word)[0]
+			loss = train_helper(sequence_tensor, sequence_mask, [sequence_len], word_tensor, word_mask, [word_len], output_word_tensor, output_word_mask, [output_len], output_tensor, model, False)
+			total_loss += loss.item()
+			if epoch % 5 == 0 or epoch == epochs - 1:
+				result = model.decode_beam(sequence, word)[0]
 
-			if is_rhyme(result, word):
-				correct += 1
+				if is_rhyme(result, word):
+					correct += 1
 		validation_loss.append(total_loss / (len(data) - split_point))
-		accuracy_list.append(correct / (len(data) - split_point))
+		if epoch % 5 == 0 or epoch == epochs - 1:
+			accuracy_list.append(correct / (len(data) - split_point))
+			print(accuracy_list[len(accuracy_list) - 1])
+		print('Validation Loss: ', validation_loss[len(validation_loss) - 1])
 		print('Accuracy: ', correct / (len(data) - split_point))
+
+	print(accuracy_list)
+	print(training_loss)
+	print(validation_loss)
 
 
 		# for dt, scheme in data_train:

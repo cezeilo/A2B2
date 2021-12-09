@@ -44,6 +44,8 @@ def sample(first_line, rhymingGenerator, poemGenerator, tokenizer, device):
     # get word that rhyme with the last word of the first line
     word = first_line.split(' ')[-1]
     poem = unicodeToASCII(first_line + '\n' + second_line)
+    # print(word)
+    # print(poem)
     first_rhyme_word = rhymingGenerator.decode_beam(poem, word)
 
     second_line += ' ' + first_rhyme_word[0]
@@ -78,6 +80,8 @@ def sample(first_line, rhymingGenerator, poemGenerator, tokenizer, device):
     # get word that rhyme with the last word of the third line
     word = third_line.split(' ')[-1]
     poem = unicodeToASCII(first_line + '\n' + second_line + '\n' + third_line + '\n' + last_line)
+    # print(word)
+    # print(poem)
     second_rhyme_word = rhymingGenerator.decode_beam(poem, word)
     result = first_line + '\n' + second_line + '\n' + third_line + '\n' + last_line + ' ' + second_rhyme_word[0]
     return result
@@ -98,7 +102,7 @@ if __name__ == '__main__':
     poemGenerator, tokenizer = load_poemGenerator('/content/A2B2/PoemGenerator/model_save/T_Loss_0.198_V_Loss_0.208', device)
 
     # print(unicodedata('I love my cat'))
-    for i in range(20):
+    for i in range(50):
         print('======================\n')
         print(sample('The tree that never had to fight', rhymingGenerator, poemGenerator, tokenizer, device))
         print('======================\n')
